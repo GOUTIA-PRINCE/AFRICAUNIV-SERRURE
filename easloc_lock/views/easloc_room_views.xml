@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="easloc_room_view_list" model="ir.ui.view">
+        <field name="name">easloc.room.list</field>
+        <field name="model">easloc.room</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'vacant'" decoration-info="state == 'occupied'"
+                  decoration-warning="state == 'dirty'" decoration-muted="state == 'blocked'">
+                <field name="name"/>
+                <field name="building" optional="hide"/>
+                <field name="floor"/>
+                <field name="room_index" optional="hide"/>
+                <field name="lock_no"/>
+                <field name="room_type" optional="show"/>
+                <field name="current_guest"/>
+                <field name="active_card_count"/>
+                <field name="state" widget="badge" decoration-success="state == 'vacant'"
+                       decoration-info="state == 'occupied'" decoration-warning="state == 'dirty'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="easloc_room_view_kanban" model="ir.ui.view">
+        <field name="name">easloc.room.kanban</field>
+        <field name="model">easloc.room</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="floor" group_create="false" group_delete="false"
+                    group_edit="false" quick_create="false">
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="name" class="fw-bold fs-4"/>
+                            <field name="state" widget="badge" decoration-success="state == 'vacant'"
+                                   decoration-info="state == 'occupied'" decoration-warning="state == 'dirty'"/>
+                        </div>
+                        <field name="room_type" class="text-muted"/>
+                        <field name="current_guest"/>
+                        <div class="text-muted small">Serrure <field name="lock_no"/></div>
+                        <footer>
+                            <button name="action_new_card" type="object" class="btn btn-sm btn-primary"
+                                    invisible="state in ('blocked', 'occupied')">Nouvelle carte</button>
+                            <button name="action_set_vacant" type="object" class="btn btn-sm btn-secondary"
+                                    invisible="state != 'dirty'">Marquer libre</button>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="easloc_room_view_form" model="ir.ui.view">
+        <field name="name">easloc.room.form</field>
+        <field name="model">easloc.room</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_new_card" type="object" string="Nouvelle carte client"
+                            class="btn-primary" invisible="state == 'blocked'"/>
+                    <button name="action_set_vacant" type="object" string="Marquer libre"
+                            invisible="state in ('vacant', 'occupied')"/>
+                    <button name="action_set_blocked" type="object" string="Mettre hors service"
+                            invisible="state == 'blocked'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="vacant,occupied,dirty"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_cards" type="object" class="oe_stat_button" icon="fa-id-card">
+                            <field name="active_card_count" widget="statinfo" string="Cartes actives"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="ex. 101"/></h1>
+                    </div>
+                    <group>
+                        <group string="Serrure">
+                            <field name="building"/>
+                            <field name="floor"/>
+                            <field name="room_index"/>
+                            <field name="lock_no"/>
+                        </group>
+                        <group string="Chambre">
+                            <field name="room_type"/>
+                            <field name="current_guest"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Remarques…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="easloc_room_view_search" model="ir.ui.view">
+        <field name="name">easloc.room.search</field>
+        <field name="model">easloc.room</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="lock_no"/>
+                <field name="current_guest" string="Client" filter_domain="[('card_ids.guest_name', 'ilike', self), ('card_ids.state', '=', 'active')]"/>
+                <filter name="vacant" string="Libres" domain="[('state', '=', 'vacant')]"/>
+                <filter name="occupied" string="Occupées" domain="[('state', '=', 'occupied')]"/>
+                <filter name="dirty" string="À nettoyer" domain="[('state', '=', 'dirty')]"/>
+                <separator/>
+                <filter name="archived" string="Archivées" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_floor" string="Étage" context="{'group_by': 'floor'}"/>
+                    <filter name="group_state" string="État" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="easloc_room_action" model="ir.actions.act_window">
+        <field name="name">Chambres</field>
+        <field name="res_model">easloc.room</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Créez vos chambres</p>
+            <p>Utilisez « Créer des chambres en lot » (menu Configuration) pour reprendre la
+               numérotation du logiciel EASLOC.</p>
+        </field>
+    </record>
+</odoo>

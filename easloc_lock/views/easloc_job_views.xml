@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="easloc_job_view_list" model="ir.ui.view">
+        <field name="name">easloc.job.list</field>
+        <field name="model">easloc.job</field>
+        <field name="arch" type="xml">
+            <list create="false" decoration-danger="state == 'error'" decoration-muted="state == 'cancelled'">
+                <field name="create_date"/>
+                <field name="encoder_id"/>
+                <field name="job_type"/>
+                <field name="card_id"/>
+                <field name="user_id"/>
+                <field name="state" widget="badge" decoration-success="state == 'done'"
+                       decoration-danger="state == 'error'"/>
+                <field name="error"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="easloc_job_view_form" model="ir.ui.view">
+        <field name="name">easloc.job.form</field>
+        <field name="model">easloc.job</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="job_type"/>
+                            <field name="encoder_id"/>
+                            <field name="card_id"/>
+                        </group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="create_date"/>
+                            <field name="date_done"/>
+                            <field name="error"/>
+                        </group>
+                    </group>
+                    <group string="Paramètres envoyés">
+                        <field name="payload" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Réponse du pont">
+                        <field name="result" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="easloc_job_action" model="ir.actions.act_window">
+        <field name="name">Journal de l'encodeur</field>
+        <field name="res_model">easloc.job</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

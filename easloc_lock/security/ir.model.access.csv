@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_easloc_encoder_user,easloc.encoder user,model_easloc_encoder,base.group_user,1,0,0,0
+access_easloc_encoder_admin,easloc.encoder admin,model_easloc_encoder,base.group_system,1,1,1,1
+access_easloc_room_user,easloc.room user,model_easloc_room,base.group_user,1,1,1,0
+access_easloc_room_admin,easloc.room admin,model_easloc_room,base.group_system,1,1,1,1
+access_easloc_card_user,easloc.card user,model_easloc_card,base.group_user,1,1,1,0
+access_easloc_card_admin,easloc.card admin,model_easloc_card,base.group_system,1,1,1,1
+access_easloc_job_user,easloc.job user,model_easloc_job,base.group_user,1,0,0,0
+access_easloc_job_admin,easloc.job admin,model_easloc_job,base.group_system,1,1,1,1
+access_easloc_room_batch_user,easloc.room.batch user,model_easloc_room_batch,base.group_user,1,1,1,1

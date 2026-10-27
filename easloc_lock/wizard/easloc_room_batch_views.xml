@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="easloc_room_batch_view_form" model="ir.ui.view">
+        <field name="name">easloc.room.batch.form</field>
+        <field name="model">easloc.room.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <p class="text-muted">
+                    Même logique que « Room Definition » du logiciel EASLOC : étages 1-5 et
+                    chambres 101-518 créent 18 chambres par étage. Les n° de serrure existants
+                    sont ignorés. Supprimez ensuite les chambres qui n'existent pas.
+                </p>
+                <group>
+                    <group>
+                        <field name="building"/>
+                        <field name="floors"/>
+                        <field name="rooms"/>
+                        <field name="room_type"/>
+                    </group>
+                    <group>
+                        <field name="preview" nolabel="1" colspan="2"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_create" type="object" string="Créer les chambres" class="btn-primary"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="easloc_room_batch_action" model="ir.actions.act_window">
+        <field name="name">Créer des chambres en lot</field>
+        <field name="res_model">easloc.room.batch</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

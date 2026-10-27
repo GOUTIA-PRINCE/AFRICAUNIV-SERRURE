@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="easloc_encoder_view_list" model="ir.ui.view">
+        <field name="name">easloc.encoder.list</field>
+        <field name="model">easloc.encoder</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="dls_co_id" options="{'enable_formatting': false}"/>
+                <field name="bridge_online" widget="boolean"/>
+                <field name="last_seen"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="easloc_encoder_view_form" model="ir.ui.view">
+        <field name="name">easloc.encoder.form</field>
+        <field name="model">easloc.encoder</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_test_buzzer" type="object" string="Tester l'encodeur (bip)"
+                            class="btn-primary"/>
+                    <button name="action_read_card" type="object" string="Lire une carte"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Pont hors ligne" bg_color="text-bg-danger"
+                            invisible="bridge_online"/>
+                    <widget name="web_ribbon" title="Pont en ligne" bg_color="text-bg-success"
+                            invisible="not bridge_online"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Serrures">
+                            <field name="dls_co_id" options="{'enable_formatting': false}"/>
+                            <field name="tz"/>
+                            <field name="dai"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Cartes client">
+                            <field name="default_llock"/>
+                            <field name="default_pdoors"/>
+                            <field name="verify_before_erase"/>
+                            <field name="checkout_room_state"/>
+                            <field name="wait_timeout"/>
+                        </group>
+                    </group>
+                    <group string="Pont Windows" groups="base.group_system">
+                        <group>
+                            <field name="api_key" widget="CopyClipboardChar" readonly="1"/>
+                            <button name="action_regenerate_key" type="object" string="Générer une nouvelle clé"
+                                    class="btn-link" colspan="2"
+                                    confirm="L'ancienne clé ne fonctionnera plus. Continuer ?"/>
+                        </group>
+                        <group>
+                            <field name="bridge_online"/>
+                            <field name="last_seen"/>
+                            <field name="bridge_version"/>
+                            <field name="dll_version"/>
+                        </group>
+                    </group>
+                    <div class="text-muted" groups="base.group_system">
+                        Recopiez l'URL de cet Odoo et la clé ci-dessus dans le fichier
+                        <code>easloc_bridge.ini</code> du PC de réception.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="easloc_encoder_action" model="ir.actions.act_window">
+        <field name="name">Encodeurs</field>
+        <field name="res_model">easloc.encoder</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Déclarez l'encodeur USB de la réception</p>
+            <p>Saisissez le code hôtel (dlsCoID), puis recopiez la clé du pont dans easloc_bridge.ini.</p>
+        </field>
+    </record>
+
+    <record id="easloc_action_read_card" model="ir.actions.server">
+        <field name="name">Lire une carte</field>
+        <field name="model_id" ref="model_easloc_encoder"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_read_card_default()</field>
+    </record>
+</odoo>

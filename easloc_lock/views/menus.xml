@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="easloc_menu_root" name="Serrures" sequence="45"
+              web_icon="easloc_lock,static/description/icon.png"/>
+
+    <menuitem id="easloc_menu_reception" name="Réception" parent="easloc_menu_root" sequence="10"/>
+    <menuitem id="easloc_menu_rooms" name="Chambres" parent="easloc_menu_reception"
+              action="easloc_room_action" sequence="10"/>
+    <menuitem id="easloc_menu_cards" name="Cartes client" parent="easloc_menu_reception"
+              action="easloc_card_action" sequence="20"/>
+    <menuitem id="easloc_menu_read_card" name="Lire une carte" parent="easloc_menu_reception"
+              action="easloc_action_read_card" sequence="30"/>
+
+    <menuitem id="easloc_menu_config" name="Configuration" parent="easloc_menu_root" sequence="90"
+              groups="base.group_system"/>
+    <menuitem id="easloc_menu_encoders" name="Encodeurs" parent="easloc_menu_config"
+              action="easloc_encoder_action" sequence="10"/>
+    <menuitem id="easloc_menu_room_batch" name="Créer des chambres en lot" parent="easloc_menu_config"
+              action="easloc_room_batch_action" sequence="20"/>
+    <menuitem id="easloc_menu_jobs" name="Journal de l'encodeur" parent="easloc_menu_config"
+              action="easloc_job_action" sequence="30"/>
+</odoo>
