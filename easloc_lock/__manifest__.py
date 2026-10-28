@@ -1,6 +1,6 @@
 {
     "name": "Serrures EASLOC proUSB",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Services",
     "summary": "Encodage des cartes de chambre EASLOC proUSB (V9) depuis Odoo",
     "description": """
@@ -14,13 +14,14 @@ Intégration des serrures d'hôtel EASLOC proUSB (Card Lock System V9) dans Odoo
 """,
     "author": "Votre société",
     "license": "LGPL-3",
-    "depends": ["base", "mail"],
+    "depends": ["base", "mail", "product", "account"],
     "data": [
         "security/ir.model.access.csv",
         "data/ir_sequence.xml",
         "views/easloc_encoder_views.xml",
         "views/easloc_room_views.xml",
         "views/easloc_card_views.xml",
+        "views/res_partner_views.xml",
         "views/easloc_job_views.xml",
         "wizard/easloc_room_batch_views.xml",
         "views/menus.xml",

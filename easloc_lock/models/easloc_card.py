@@ -1,7 +1,7 @@
-from datetime import datetime, time, timedelta, timezone
-from zoneinfo import ZoneInfo
+from datetime import datetime, time, timedelta
+import pytz
 
-from odoo import _, api, fields, models
+from odoo import _, api, fields, models, Command
 from odoo.exceptions import UserError, ValidationError
 
 # Format de date attendu par proRFL.dll (format « YYMMDDHHMM » du logiciel d'origine)
@@ -25,6 +25,12 @@ class EaslocCard(models.Model):
     lock_no = fields.Char(related="room_id.lock_no", string="N° de serrure")
     guest_name = fields.Char("Client", required=True, tracking=True)
     partner_id = fields.Many2one("res.partner", "Contact")
+    cni = fields.Char(related="partner_id.easloc_cni", string="CNI", readonly=True)
+    line_ids = fields.One2many(
+        "easloc.card.line", "card_id", string="Produits / services", copy=False
+    )
+    invoice_ids = fields.One2many("account.move", "easloc_card_id", string="Factures")
+    invoice_count = fields.Integer(compute="_compute_invoice_count")
     begin_date = fields.Datetime(
         "Valide du", required=True, default=fields.Datetime.now, tracking=True,
         help="Heure d'émission de la carte. Une carte plus récente pour la même "
@@ -72,10 +78,10 @@ class EaslocCard(models.Model):
     @api.model
     def _default_end_date(self):
         """Lendemain à l'heure de départ (12:00) dans le fuseau de l'utilisateur."""
-        tz = ZoneInfo(self.env.user.tz or "UTC")
-        local = datetime.now(tz) + timedelta(days=1)
-        local = datetime.combine(local.date(), time(12, 0), tzinfo=tz)
-        return local.astimezone(timezone.utc).replace(tzinfo=None)
+        tz = pytz.timezone(self.env.user.tz or "UTC")
+        tomorrow = datetime.now(tz).date() + timedelta(days=1)
+        local = tz.localize(datetime.combine(tomorrow, time(12, 0)))
+        return local.astimezone(pytz.UTC).replace(tzinfo=None)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -83,6 +89,79 @@ class EaslocCard(models.Model):
             if vals.get("name", "/") == "/":
                 vals["name"] = self.env["ir.sequence"].next_by_code("easloc.card") or "/"
         return super().create(vals_list)
+
+    @api.depends("invoice_ids", "parent_id.invoice_ids")
+    def _compute_invoice_count(self):
+        for card in self:
+            origin = card.parent_id or card
+            card.invoice_count = len(origin.sudo().invoice_ids)
+
+    @api.onchange("partner_id")
+    def _onchange_partner_id(self):
+        if self.partner_id:
+            self.guest_name = self.partner_id.name
+
+    def _create_customer_invoice(self):
+        self.ensure_one()
+        if self.parent_id:
+            return (self.parent_id or self).invoice_ids[:1]
+        if self.invoice_ids:
+            return self.invoice_ids[:1]
+        if not self.partner_id:
+            raise UserError(_("Sélectionnez la fiche contact du client avant l'encodage."))
+        if not self.line_ids:
+            raise UserError(_("Ajoutez au moins un produit ou service avant l'encodage."))
+
+        invoice_lines = []
+        for line in self.line_ids:
+            taxes = line.product_id.taxes_id.filtered_domain(
+                self.env["account.tax"]._check_company_domain(self.company_id)
+            )
+            invoice_lines.append(Command.create({
+                "product_id": line.product_id.id,
+                "name": line.name or line.product_id.display_name,
+                "quantity": line.quantity,
+                "price_unit": line.price_unit,
+                "tax_ids": [Command.set(taxes.ids)],
+            }))
+        return self.env["account.move"].create({
+            "move_type": "out_invoice",
+            "partner_id": self.partner_id.id,
+            "company_id": self.company_id.id,
+            "invoice_origin": self.name,
+            "ref": self.name,
+            "easloc_card_id": self.id,
+            "invoice_line_ids": invoice_lines,
+        })
+
+    def action_view_invoices(self):
+        self.ensure_one()
+        origin = self.parent_id or self
+        invoices = origin.invoice_ids
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Facture client"),
+            "res_model": "account.move",
+            "view_mode": "list,form",
+            "domain": [("id", "in", invoices.ids)],
+            "context": {"create": False},
+        }
+
+    def action_create_invoice(self):
+        self.ensure_one()
+        if self.parent_id:
+            raise UserError(_("La facture est liée à la carte principale du séjour."))
+        if self.state != "active":
+            raise UserError(_("La carte doit être encodée avant de créer sa facture."))
+        invoice = self._create_customer_invoice()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Facture client"),
+            "res_model": "account.move",
+            "view_mode": "form",
+            "res_id": invoice.id,
+            "target": "current",
+        }
 
     @api.constrains("begin_date", "end_date")
     def _check_dates(self):
@@ -98,8 +177,9 @@ class EaslocCard(models.Model):
 
     # ------------------------------------------------------------------
     def _lock_datetime(self, value):
-        tz = ZoneInfo(self.encoder_id.sudo().tz or "UTC")
-        return value.replace(tzinfo=timezone.utc).astimezone(tz).strftime(LOCK_DATE_FORMAT)
+        tz = pytz.timezone(self.encoder_id.sudo().tz or "UTC")
+        value_utc = pytz.UTC.localize(value) if value.tzinfo is None else value.astimezone(pytz.UTC)
+        return value_utc.astimezone(tz).strftime(LOCK_DATE_FORMAT)
 
     def _guest_payload(self):
         self.ensure_one()
@@ -124,11 +204,17 @@ class EaslocCard(models.Model):
             raise UserError(_("La chambre %s est hors service.", self.room_id.name))
         if self.end_date <= fields.Datetime.now():
             raise UserError(_("La date de fin est déjà passée."))
+        if not self.partner_id:
+            raise UserError(_("Sélectionnez la fiche contact du client avant l'encodage."))
+        if not self.line_ids:
+            raise UserError(_("Ajoutez au moins un produit ou service avant l'encodage."))
         res = self.encoder_id._run_job("guest", self._guest_payload(), card=self)
         if res["state"] == "done":
+            if not self.parent_id:
+                self._create_customer_invoice()
             return self.encoder_id._notify(
                 _("Carte encodée"),
-                _("Carte de la chambre %(room)s prête pour %(guest)s.",
+                _("Carte de la chambre %(room)s prête pour %(guest)s. La facture client a été créée en brouillon.",
                   room=self.room_id.name, guest=self.guest_name),
                 "success",
             )
@@ -137,6 +223,7 @@ class EaslocCard(models.Model):
             res["error"] or _("L'encodeur n'a pas répondu. Posez la carte sur l'encodeur puis réessayez."),
             "danger",
         )
+
 
     def action_make_copy(self):
         """Carte supplémentaire pour le même séjour (même début, n° de carte suivant)."""
@@ -224,3 +311,42 @@ class EaslocCard(models.Model):
             others = room.card_ids.filtered(lambda c: c.state == "active" and c != card)
             if not others and room.state == "occupied":
                 room.state = card.encoder_id.sudo().checkout_room_state or "dirty"
+
+class EaslocCardLine(models.Model):
+    _name = "easloc.card.line"
+    _description = "Produit ou service facturé sur une carte EASLOC"
+    _order = "sequence, id"
+
+    sequence = fields.Integer(default=10)
+    card_id = fields.Many2one("easloc.card", required=True, ondelete="cascade", index=True)
+    product_id = fields.Many2one(
+        "product.product", string="Produit / service", required=True,
+        domain=[("type", "=", "service"), ("sale_ok", "=", True)],
+    )
+    name = fields.Char(string="Description")
+    quantity = fields.Float(
+        string="Heures", default=1.0, required=True,
+        help="Nombre d'heures facturées. Configurez l'unité de mesure du produit en heures.",
+    )
+    price_unit = fields.Float(string="Prix unitaire", required=True, digits="Product Price")
+    subtotal = fields.Monetary(string="Sous-total", compute="_compute_subtotal", currency_field="currency_id")
+    currency_id = fields.Many2one(related="card_id.company_id.currency_id", store=True, readonly=True)
+
+    @api.onchange("product_id")
+    def _onchange_product_id(self):
+        if self.product_id:
+            self.name = self.product_id.display_name
+            self.price_unit = self.product_id.lst_price
+
+    @api.depends("quantity", "price_unit")
+    def _compute_subtotal(self):
+        for line in self:
+            line.subtotal = line.quantity * line.price_unit
+
+    @api.constrains("quantity", "price_unit")
+    def _check_amounts(self):
+        for line in self:
+            if line.quantity <= 0:
+                raise ValidationError(_("La quantité doit être supérieure à zéro."))
+            if line.price_unit < 0:
+                raise ValidationError(_("Le prix unitaire ne peut pas être négatif."))

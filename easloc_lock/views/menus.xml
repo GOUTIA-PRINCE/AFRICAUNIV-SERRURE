@@ -8,6 +8,9 @@
               action="easloc_room_action" sequence="10"/>
     <menuitem id="easloc_menu_cards" name="Cartes client" parent="easloc_menu_reception"
               action="easloc_card_action" sequence="20"/>
+    <menuitem id="easloc_menu_products" name="Produits et services" parent="easloc_menu_root"
+              action="product.product_template_action_all" sequence="20"
+              groups="product.group_product_manager"/>
     <menuitem id="easloc_menu_read_card" name="Lire une carte" parent="easloc_menu_reception"
               action="easloc_action_read_card" sequence="30"/>
 

@@ -7,7 +7,7 @@
             <list decoration-muted="state in ('erased', 'cancelled')" decoration-danger="state == 'error'">
                 <field name="name"/>
                 <field name="room_id"/>
-                <field name="guest_name"/>
+                <field name="partner_id" string="Client"/>
                 <field name="begin_date"/>
                 <field name="end_date"/>
                 <field name="card_no" optional="hide"/>
@@ -42,6 +42,15 @@
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,erased"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoices" type="object" class="oe_stat_button"
+                                icon="fa-pencil-square-o" invisible="invoice_count == 0">
+                            <field name="invoice_count" widget="statinfo" string="Factures client"/>
+                        </button>
+                        <button name="action_create_invoice" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o" string="Créer la facture"
+                                invisible="state != 'active' or invoice_count != 0 or parent_id"/>
+                    </div>
                     <div class="alert alert-danger" role="alert" invisible="state != 'error' or not last_error">
                         <field name="last_error"/>
                     </div>
@@ -55,8 +64,9 @@
                         <group string="Séjour">
                             <field name="room_id" readonly="state != 'draft'" options="{'no_create': True}"/>
                             <field name="lock_no"/>
-                            <field name="guest_name" readonly="state not in ('draft', 'error')"/>
-                            <field name="partner_id" readonly="state not in ('draft', 'error')"/>
+                            <field name="partner_id" string="Client" required="state in ('draft', 'error')"
+                                   readonly="state not in ('draft', 'error')"/>
+                            <field name="cni" readonly="1" invisible="not partner_id"/>
                             <field name="begin_date" readonly="state not in ('draft', 'error') or parent_id"/>
                             <field name="end_date" readonly="state not in ('draft', 'error')"/>
                         </group>
@@ -70,6 +80,20 @@
                             <field name="erased_date" invisible="not erased_date"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
+                    </group>
+                    <group string="Produits et services à facturer" invisible="parent_id">
+                        <field name="line_ids" readonly="state not in ('draft', 'error')">
+                            <list editable="bottom">
+                                <field name="sequence" widget="handle"/>
+                                <field name="product_id" options="{'no_create': True}"/>
+                                <field name="name"/>
+                                <field name="quantity" string="Heures"
+                                       help="Nombre d'heures facturées. Configurez l'unité de mesure du produit en heures."/>
+                                <field name="price_unit"/>
+                                <field name="subtotal" sum="Total"/>
+                                <field name="currency_id" column_invisible="True"/>
+                            </list>
+                        </field>
                     </group>
                     <notebook>
                         <page string="Copies" name="copies" invisible="not copy_ids">
