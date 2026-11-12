@@ -39,7 +39,8 @@ tombe sur la bonne base.
    ⚠ `proRFL.dll` est une DLL 32 bits : un Python 64 bits ne peut pas la charger.
 3. Copier le dossier `easloc_bridge` (ex. `C:\easloc_bridge`).
 4. Éditer `easloc_bridge.ini` :
-   - `url` = adresse de votre Odoo, `api_key` = clé copiée à l'étape 1.2
+   - `url` = racine de votre Odoo, sans `/odoo` ni chemin final (ex. `http://192.168.1.10:8069`),
+     `api_key` = clé copiée à l'étape 1.2
    - `dll_dir` = dossier d'installation de Card Lock System (clic droit sur l'icône du logiciel
      › *Ouvrir l'emplacement du fichier*)
 5. **Fermer le logiciel Card Lock System**, brancher l'encodeur, lancer `autotest.bat` :
