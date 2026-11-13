@@ -79,7 +79,7 @@
                             <field name="building"/>
                             <field name="floor"/>
                             <field name="room_index"/>
-                            <field name="lock_no"/>
+                            <field name="lock_no" placeholder="ex. 01010199"/>
                         </group>
                         <group string="Chambre">
                             <field name="room_type"/>

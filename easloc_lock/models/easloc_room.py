@@ -24,11 +24,14 @@ class EaslocRoom(models.Model):
     lock_no = fields.Char(
         "N° de serrure",
         compute="_compute_lock_no",
+        inverse="_inverse_lock_no",
         store=True,
         index=True,
-        help="Bâtiment, étage et n° interne sur deux chiffres chacun (format du logiciel "
-        "EASLOC). Ex. : bâtiment 1, étage 3, chambre 1 → 010301.",
+        help="Numéro exact affiché dans la colonne Lock No. d'EASLOC. Saisissez-le comme "
+        "texte pour conserver les zéros initiaux (ex. 01010199). Si vous ne le modifiez pas, "
+        "Odoo propose le format bâtiment + étage + n° interne (6 chiffres).",
     )
+    lock_no_override = fields.Char("Surcharge du n° de serrure", copy=False)
     room_type = fields.Char("Type")
     state = fields.Selection(
         [
@@ -52,10 +55,17 @@ class EaslocRoom(models.Model):
         "Deux chambres ne peuvent pas avoir le même n° de serrure.",
     )
 
-    @api.depends("building", "floor", "room_index")
+    @api.depends("building", "floor", "room_index", "lock_no_override")
     def _compute_lock_no(self):
         for room in self:
-            room.lock_no = "%02d%02d%02d" % (room.building, room.floor, room.room_index)
+            room.lock_no = room.lock_no_override or "%02d%02d%02d" % (
+                room.building, room.floor, room.room_index
+            )
+
+    def _inverse_lock_no(self):
+        for room in self:
+            generated = "%02d%02d%02d" % (room.building, room.floor, room.room_index)
+            room.lock_no_override = room.lock_no if room.lock_no != generated else False
 
     @api.depends("card_ids.state", "card_ids.guest_name")
     def _compute_active_card_count(self):
@@ -76,6 +86,15 @@ class EaslocRoom(models.Model):
                     raise ValidationError(
                         _("Chambre %(room)s : le %(what)s doit être entre 0 et 99.", room=room.name, what=label)
                     )
+
+    @api.constrains("building", "floor", "room_index", "lock_no", "lock_no_override")
+    def _check_lock_no(self):
+        for room in self:
+            if not room.lock_no or not room.lock_no.isdigit() or len(room.lock_no) not in (6, 8):
+                raise ValidationError(
+                    _("Le n° de serrure doit contenir 6 chiffres (format proposé par Odoo) "
+                      "ou 8 chiffres (format EASLOC), sans espaces ni séparateurs.")
+                )
 
     def action_new_card(self):
         self.ensure_one()

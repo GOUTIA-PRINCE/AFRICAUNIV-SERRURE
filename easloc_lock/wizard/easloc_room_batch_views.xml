@@ -6,6 +6,11 @@
         <field name="arch" type="xml">
             <form>
                 <p class="text-muted">
+                    La création en lot propose un numéro à 6 chiffres. Après création, ouvrez
+                    chaque chambre et saisissez le Lock No. exact d'EASLOC si nécessaire
+                    (par exemple 01010199).
+                </p>
+                <p class="text-muted">
                     Même logique que « Room Definition » du logiciel EASLOC : étages 1-5 et
                     chambres 101-518 créent 18 chambres par étage. Les n° de serrure existants
                     sont ignorés. Supprimez ensuite les chambres qui n'existent pas.

@@ -86,9 +86,19 @@ class EaslocCard(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if vals.get("partner_id") and not vals.get("guest_name"):
+                vals["guest_name"] = self.env["res.partner"].browse(vals["partner_id"]).name
             if vals.get("name", "/") == "/":
                 vals["name"] = self.env["ir.sequence"].next_by_code("easloc.card") or "/"
         return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get("partner_id") and not vals.get("guest_name"):
+            vals = dict(
+                vals,
+                guest_name=self.env["res.partner"].browse(vals["partner_id"]).name,
+            )
+        return super().write(vals)
 
     @api.depends("invoice_ids", "parent_id.invoice_ids")
     def _compute_invoice_count(self):
