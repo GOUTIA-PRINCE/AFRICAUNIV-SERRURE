@@ -29,7 +29,7 @@ Le PC appelle Odoo, pas l'inverse : aucun port à ouvrir, ça fonctionne avec Od
    inexistantes. Le n° de serrure = bâtiment + étage + n° interne sur 2 chiffres (301 → `010301`),
    exactement comme le logiciel d'origine.
 
-Si plusieurs bases sont servies par le même Odoo, configurez `dbfilter` pour que l'URL du pont
+Si plusieurs bases sont servies par le même Odoo, renseignez `db_name` dans `easloc_bridge.ini` pour que le pont
 tombe sur la bonne base.
 
 ## 2. Côté PC de réception (Windows)

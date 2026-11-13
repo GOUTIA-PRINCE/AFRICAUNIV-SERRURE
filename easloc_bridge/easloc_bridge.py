@@ -228,6 +228,7 @@ class Bridge:
     def __init__(self, cfg, encoder):
         self.url = cfg.get("odoo", "url").rstrip("/")
         self.key = cfg.get("odoo", "api_key")
+        self.db_name = cfg.get("odoo", "db_name", fallback="").strip()
         self.poll_interval = cfg.getfloat("bridge", "poll_interval", fallback=1.0)
         self.card_wait = cfg.getfloat("bridge", "card_wait", fallback=8.0)
         self.buzzer_ms = cfg.getint("bridge", "buzzer", fallback=10)
@@ -238,14 +239,17 @@ class Bridge:
 
     # -- HTTP -------------------------------------------------------------
     def _post(self, path, data):
+        headers = {
+            "Content-Type": "application/json",
+            "X-Easloc-Key": self.key,
+            "User-Agent": "easloc-bridge/" + __version__,
+        }
+        if self.db_name:
+            headers["X-Odoo-Database"] = self.db_name
         req = urllib.request.Request(
             self.url + path,
             data=json.dumps(data).encode(),
-            headers={
-                "Content-Type": "application/json",
-                "X-Easloc-Key": self.key,
-                "User-Agent": "easloc-bridge/" + __version__,
-            },
+            headers=headers,
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=30, context=self.ssl_ctx) as resp:
@@ -413,9 +417,13 @@ def main():
     if not cfg.read(args.config, encoding="utf-8"):
         sys.exit("Fichier de configuration introuvable : %s" % args.config)
 
-    log_file = cfg.get("bridge", "log_file", fallback=os.path.join(HERE, "easloc_bridge.log"))
+    log_file = cfg.get(
+        "bridge", "log_file", fallback=os.path.join(HERE, "easloc_bridge.log"), raw=True
+    )
+    log_file = os.path.expandvars(log_file)
     handlers = [logging.StreamHandler()]
     if log_file:
+        os.makedirs(os.path.dirname(os.path.abspath(log_file)), exist_ok=True)
         handlers.append(logging.handlers.RotatingFileHandler(
             log_file, maxBytes=2_000_000, backupCount=3, encoding="utf-8"))
     logging.basicConfig(level=logging.INFO, handlers=handlers,
